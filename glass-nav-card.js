@@ -190,7 +190,30 @@ const NAV_STYLE = `
     color: #1c1f14;
     box-shadow: 0 0 18px rgba(var(--nav-accent), 0.45);
   }
-  .it.head { color: #fff; }
+  .it.head { color: #fff; flex: 1; min-width: 0; }
+  .headrow { display: flex; align-items: center; gap: 4px; flex: none; }
+  .pen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.2s, background 0.25s;
+  }
+  .pen ha-icon { --mdc-icon-size: 18px; }
+  :host([open]) .pen { opacity: 1; pointer-events: auto; }
+  @media (hover: hover) {
+    nav:hover .pen { opacity: 1; pointer-events: auto; }
+    .pen:hover { background: rgba(255, 255, 255, 0.25); }
+  }
   .it.head span { font-size: 16px; font-weight: 700; }
   .sep { height: 1px; flex: none; margin: 4px 6px; background: rgba(255, 255, 255, 0.18); }
 
@@ -217,6 +240,7 @@ const NAV_STYLE = `
     :host([mobile="bottom"]) .it span,
     :host([mobile="bottom"]) .it.head,
     :host([mobile="bottom"]) .sep { display: none; }
+    :host([mobile="bottom"]) .pen { opacity: 1; pointer-events: auto; width: 40px; height: 40px; }
   }
 `;
 
@@ -304,7 +328,7 @@ const GlassNav = {
     this.nav.addEventListener("pointerup", cancel);
     this.nav.addEventListener("pointerleave", cancel);
     this.nav.addEventListener("click", (ev) => {
-      const it = ev.target.closest(".it");
+      const it = ev.target.closest(".it, .pen");
       if (!it) return;
       ev.preventDefault();
       if (it.classList.contains("edit")) {
@@ -379,14 +403,14 @@ const GlassNav = {
       return `<a class="it ${p === best ? "active" : ""}" href="${esc(it.path)}" data-path="${esc(it.path)}">
         <ha-icon icon="${esc(it.icon || "mdi:circle-medium")}"></ha-icon><span>${esc(it.name)}</span></a>`;
     };
-    const head = `<a class="it head">
-      <ha-icon icon="${esc(cfg.icon || "mdi:menu")}"></ha-icon><span>${esc(cfg.title || "Menu")}</span></a>`;
     const lovelace = this.owner._dashboard();
     const canEdit = cfg.show_edit !== false && this.owner._hass?.user?.is_admin && lovelace?.setEditMode;
-    const edit = canEdit
-      ? `<div class="sep"></div><a class="it edit"><ha-icon icon="mdi:pencil"></ha-icon><span>${esc(tr(this.owner._hass, "edit"))}</span></a>`
+    const pen = canEdit
+      ? `<a class="pen edit" title="${esc(tr(this.owner._hass, "edit"))}"><ha-icon icon="mdi:pencil"></ha-icon></a>`
       : "";
-    const html = head + groups.map((g) => `<div class="sep"></div>${g.map(link).join("")}`).join("") + edit;
+    const head = `<div class="headrow"><a class="it head">
+      <ha-icon icon="${esc(cfg.icon || "mdi:menu")}"></ha-icon><span>${esc(cfg.title || "Menu")}</span></a>${pen}</div>`;
+    const html = head + groups.map((g) => `<div class="sep"></div>${g.map(link).join("")}`).join("");
     if (html !== this._html) this.nav.innerHTML = this._html = html;
   },
 

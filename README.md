@@ -29,7 +29,7 @@ icon: mdi:home-assistant
 
 Astuce : collez la même carte dans chaque vue, pour que la barre apparaisse même si la page est rechargée directement sur cette vue.
 
-**Modifier le tableau de bord** : touchez ✏️ **Modifier le tableau de bord** en bas de la barre. Les barres de HA réapparaissent et le mode édition s'ouvre ; elles se masquent de nouveau quand vous cliquez sur « Terminé ». Un appui long sur l'icône du haut affiche ou masque aussi les barres de HA.
+**Modifier le tableau de bord** : touchez le crayon ✏️ à droite du titre, en haut de la barre dépliée. Les barres de HA réapparaissent et le mode édition s'ouvre ; elles se masquent de nouveau quand vous cliquez sur « Terminé ». Un appui long sur l'icône du haut affiche ou masque aussi les barres de HA.
 
 ### Options
 
