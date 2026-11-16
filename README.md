@@ -32,7 +32,16 @@ Dans l'éditeur visuel, la liste **Pages affichées dans la barre** propose tout
 
 ## Utilisation
 
-Ajoutez la carte n'importe où dans la vue (elle n'est visible qu'en mode édition ; seule la barre s'affiche) :
+La barre ne s'installe pas toute seule : il faut **l'ajouter comme une carte** dans votre tableau de bord.
+
+1. Passez le tableau de bord en mode édition (crayon en haut à droite).
+2. **Ajouter une carte** → cherchez **Glass Nav Card**, ou collez le YAML ci-dessous dans une carte « Manuel ».
+3. Placez-la n'importe où dans la vue, par exemple en bas d'une section.
+
+En mode édition, la carte apparaît sous forme de case : c'est là que vous la modifiez. Hors mode édition, la case disparaît et seule la barre s'affiche sur le bord de l'écran.
+
+<img src="https://raw.githubusercontent.com/mrcouscous49-ui/glass-nav-card/main/images/edit-card.png" alt="La carte Glass Nav Card en mode édition" width="520">
+
 
 ```yaml
 type: custom:glass-nav-card
