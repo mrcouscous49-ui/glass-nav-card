@@ -3,7 +3,7 @@
  * https://github.com/mrcouscous49-ui/glass-nav-card
  */
 
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 const DEFAULT_ACCENT = [212, 232, 138];
 
 const STRINGS = {
@@ -305,6 +305,7 @@ const GlassNav = {
       const root = this.host.attachShadow({ mode: "open" });
       root.innerHTML = `<style>${NAV_STYLE}</style><nav></nav>`;
       this.nav = root.querySelector("nav");
+      this._html = null;
       this._bind();
       document.body.append(this.host);
       window.addEventListener("location-changed", this._onLocation);
@@ -331,7 +332,7 @@ const GlassNav = {
     this.host?.remove();
     window.removeEventListener("location-changed", this._onLocation);
     window.removeEventListener("popstate", this._onLocation);
-    this.host = this.owner = this.base = null;
+    this.host = this.owner = this.base = this._html = null;
   },
 
   _onLocation: () => {
