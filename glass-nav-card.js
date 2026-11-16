@@ -3,7 +3,7 @@
  * https://github.com/mrcouscous49-ui/glass-nav-card
  */
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const DEFAULT_ACCENT = [212, 232, 138];
 
 const STRINGS = {
@@ -15,6 +15,8 @@ const STRINGS = {
     nav_placeholder: "Barre de navigation Glass : elle s'affiche sur le bord de l'écran (cette case n'est visible qu'en mode édition).",
     nav_icon: "Icône du menu",
     edit: "Modifier le tableau de bord",
+    visible_items: "Pages affichées dans la barre",
+    tab: "onglet",
     show_edit: "Bouton « Modifier le tableau de bord »",
     show_views: "Onglets de ce tableau de bord",
     show_panels: "Pages de la barre latérale de HA",
@@ -33,6 +35,8 @@ const STRINGS = {
     nav_placeholder: "Glass navigation bar: it shows on the edge of the screen (this box is only visible in edit mode).",
     nav_icon: "Menu icon",
     edit: "Edit dashboard",
+    visible_items: "Pages shown in the bar",
+    tab: "view",
     show_edit: "\"Edit dashboard\" button",
     show_views: "This dashboard's views",
     show_panels: "Home Assistant sidebar pages",
@@ -244,6 +248,38 @@ const NAV_STYLE = `
   }
 `;
 
+// Liens proposés automatiquement : vues du tableau de bord, puis pages de la barre latérale de HA.
+const availableItems = (cfg, hass, lovelace, base) => {
+  const groups = [];
+  if (cfg.show_views !== false) {
+    const views = lovelace?.config?.views || [];
+    groups.push(
+      views
+        .filter((v) => v.visible !== false && !v.subview)
+        .map((v, i) => ({
+          name: v.title || v.path || String(i + 1),
+          icon: v.icon || "mdi:view-dashboard-variant",
+          path: `/${base}/${v.path ?? i}`,
+          view: true,
+        }))
+    );
+  }
+  if (cfg.show_panels !== false && hass?.panels) {
+    groups.push(
+      Object.values(hass.panels)
+        .filter((p) => (p.title || p.component_name === "lovelace") && !PANEL_SKIP.includes(p.url_path))
+        .filter((p) => !(p.component_name === "config" && !hass.user?.is_admin))
+        .map((p) => ({
+          name: (p.title && hass.localize?.(`panel.${p.title}`)) || p.title || hass.localize?.("panel.states") || p.url_path,
+          icon: p.icon || PANEL_ICONS[p.component_name] || PANEL_ICONS[p.url_path] || "mdi:apps",
+          path: `/${p.url_path}`,
+        }))
+        .sort((a, b) => (a.path === "/config") - (b.path === "/config"))
+    );
+  }
+  return groups.filter((g) => g.length);
+};
+
 const navigateTo = (path) => {
   if (/^https?:\/\//.test(path)) {
     window.open(path, "_blank", "noopener");
@@ -349,32 +385,10 @@ const GlassNav = {
     const card = this.owner;
     const cfg = card?._config || {};
     if (Array.isArray(cfg.items) && cfg.items.length) return [cfg.items];
-    const hass = card?._hass;
-    const groups = [];
-    if (cfg.show_views !== false) {
-      const views = card._dashboard()?.config?.views || [];
-      const list = views
-        .filter((v) => v.visible !== false && !v.subview)
-        .map((v, i) => ({
-          name: v.title || v.path || String(i + 1),
-          icon: v.icon || "mdi:view-dashboard-variant",
-          path: `/${this.base}/${v.path ?? i}`,
-        }));
-      if (list.length) groups.push(list);
-    }
-    if (cfg.show_panels !== false && hass?.panels) {
-      const list = Object.values(hass.panels)
-        .filter((p) => (p.title || p.component_name === "lovelace") && !PANEL_SKIP.includes(p.url_path))
-        .filter((p) => !(p.component_name === "config" && !hass.user?.is_admin))
-        .map((p) => ({
-          name: (p.title && hass.localize?.(`panel.${p.title}`)) || p.title || hass.localize?.("panel.states") || p.url_path,
-          icon: p.icon || PANEL_ICONS[p.component_name] || PANEL_ICONS[p.url_path] || "mdi:apps",
-          path: `/${p.url_path}`,
-        }))
-        .sort((a, b) => (a.path === "/config") - (b.path === "/config"));
-      if (list.length) groups.push(list);
-    }
-    return groups;
+    const hide = new Set(cfg.hide_items || []);
+    return availableItems(cfg, card?._hass, card?._dashboard(), this.base)
+      .map((g) => g.filter((it) => !hide.has(it.path)))
+      .filter((g) => g.length);
   },
 
   render() {
@@ -404,7 +418,7 @@ const GlassNav = {
         <ha-icon icon="${esc(it.icon || "mdi:circle-medium")}"></ha-icon><span>${esc(it.name)}</span></a>`;
     };
     const lovelace = this.owner._dashboard();
-    const canEdit = cfg.show_edit !== false && this.owner._hass?.user?.is_admin && lovelace?.setEditMode;
+    const canEdit = cfg.show_edit !== false && this.owner._hass?.user?.is_admin !== false;
     const pen = canEdit
       ? `<a class="pen edit" title="${esc(tr(this.owner._hass, "edit"))}"><ha-icon icon="mdi:pencil"></ha-icon></a>`
       : "";
@@ -440,9 +454,10 @@ const GlassNav = {
   // Bouton crayon : barres HA réaffichées + mode édition ; on remasque à la sortie du mode édition.
   startEdit() {
     const lovelace = this.owner?._dashboard();
-    if (!lovelace?.setEditMode) return;
     this.bypass = true;
     this.applyHide();
+    // Sans accès au mode édition, on se contente de réafficher les barres de HA (crayon d'origine).
+    if (typeof lovelace?.setEditMode !== "function") return;
     lovelace.setEditMode(true);
     clearInterval(this._editTimer);
     this._editTimer = setInterval(() => {
@@ -627,6 +642,7 @@ class GlassBaseEditor extends HTMLElement {
 const NAV_SCHEMA = [
   pairOf({ name: "title", selector: { text: {} } }, { name: "nav_icon", selector: { icon: {} } }),
   pairOf(bool("show_views"), bool("show_panels")),
+  { name: "visible_items", selector: { select: { multiple: true, mode: "list", options: [] } } },
   pairOf(bool("hide_sidebar"), bool("hide_header")),
   bool("show_edit"),
   pairOf({ name: "position", selector: { select: { mode: "dropdown", options: ["left", "right"] } } }, bool("mobile_bottom")),
@@ -641,19 +657,44 @@ class GlassNavCardEditor extends GlassBaseEditor {
   get _schema() {
     // Libellés traduits pour la liste « Côté de l'écran ».
     const sch = JSON.parse(JSON.stringify(NAV_SCHEMA));
-    sch[4].schema[0].selector.select.options = ["left", "right"].map((v) => ({ value: v, label: tr(this._hass, v) }));
+    sch[5].schema[0].selector.select.options = ["left", "right"].map((v) => ({ value: v, label: tr(this._hass, v) }));
+    const all = this._allItems();
+    if (Array.isArray(this._config?.items) && this._config.items.length) sch.splice(2, 1);
+    else sch[2].selector.select.options = all.map((it) => ({
+      value: it.path,
+      label: `${it.name} · ${it.view ? tr(this._hass, "tab") : it.path}`,
+    }));
     return sch;
+  }
+  _allItems() {
+    const owner = GlassNav.owner;
+    const base = GlassNav.base || location.pathname.split("/")[1];
+    return availableItems(this._config || {}, this._hass, owner?._dashboard(), base).flat();
   }
   get _defaults() {
     return { show_views: true, show_panels: true, hide_sidebar: true, hide_header: true, show_edit: true, position: "left", mobile_bottom: true, color: [212, 232, 138], blur: 20, opacity: 12 };
   }
   _toForm(config) {
-    const { icon, ...rest } = config;
-    return { ...rest, nav_icon: icon };
+    const { icon, hide_items, ...rest } = config;
+    const hide = new Set(hide_items || []);
+    return { ...rest, nav_icon: icon, visible_items: this._allItems().map((it) => it.path).filter((p) => !hide.has(p)) };
   }
   _fromForm(value) {
-    const { nav_icon, ...rest } = value;
+    const { nav_icon, visible_items, ...rest } = value;
     const out = { ...rest, icon: nav_icon };
+    if (visible_items) {
+      const shown = new Set(visible_items);
+      // On garde les pages masquées qui ne sont pas proposées en ce moment (autre tableau de bord…).
+      const offered = new Set(this._allItems().map((it) => it.path));
+      const hide = [
+        ...(this._config.hide_items || []).filter((p) => !offered.has(p)),
+        ...[...offered].filter((p) => !shown.has(p)),
+      ];
+      if (hide.length) out.hide_items = hide;
+      else delete out.hide_items;
+    } else if (this._config.hide_items) {
+      out.hide_items = this._config.hide_items;
+    }
     if (Array.isArray(out.color) && out.color.join() === "212,232,138") delete out.color;
     return out;
   }

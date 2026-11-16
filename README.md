@@ -11,6 +11,10 @@ Barre de navigation flottante en verre pour Home Assistant. Elle remplace la bar
 
 Va très bien avec [Glass Card](https://github.com/mrcouscous49-ui/glass-card).
 
+## Choisir les pages
+
+Dans l'éditeur visuel, la liste **Pages affichées dans la barre** propose toutes vos vues et pages : décochez celles que vous ne voulez pas. Pour choisir aussi l'ordre, utilisez plutôt `items` (voir *Liens manuels*).
+
 ## Installation
 
 **Marketplace (HACS)** : Paramètres → Marketplace → ⋮ → Dépôts personnalisés → `https://github.com/mrcouscous49-ui/glass-nav-card`, type **Tableau de bord**, puis installez **Glass Nav Card** et rechargez la page (Ctrl+F5).
@@ -40,6 +44,7 @@ Astuce : collez la même carte dans chaque vue, pour que la barre apparaisse mê
 | `items` | automatique | Liste manuelle de liens (voir ci-dessous) |
 | `show_views` | `true` | Ajouter les vues du tableau de bord |
 | `show_panels` | `true` | Ajouter les pages de la barre latérale de HA |
+| `hide_items` | aucun | Chemins à retirer de la liste automatique (cases « Pages affichées » de l'éditeur) |
 | `hide_sidebar` | `true` | Masquer la barre latérale de HA |
 | `hide_header` | `true` | Masquer le bandeau d'onglets de HA |
 | `show_edit` | `true` | Bouton ✏️ « Modifier le tableau de bord » (administrateurs) |
