@@ -2,12 +2,21 @@
 
 Barre de navigation flottante en verre pour Home Assistant. Elle remplace la barre latérale grise et le bandeau d'onglets sur vos tableaux de bord.
 
+<p>
+  <img src="https://raw.githubusercontent.com/mrcouscous49-ui/glass-nav-card/main/images/collapsed.png" alt="Barre repliée" height="420">
+  &nbsp;&nbsp;
+  <img src="https://raw.githubusercontent.com/mrcouscous49-ui/glass-nav-card/main/images/expanded.png" alt="Barre dépliée au survol" height="420">
+</p>
+
 - Pilule en verre posée sur le bord de l'écran : icônes seules, **dépliée avec les noms** au survol (ou en touchant l'icône du haut).
 - Page en cours surlignée, couleur au choix.
 - **Remplissage automatique** : les vues du tableau de bord, puis les pages de la barre latérale de HA (Carte, Énergie, Historique, Paramètres…).
 - Masque la barre latérale et les onglets de HA uniquement sur le tableau de bord. Ils reviennent ailleurs et en mode édition.
 - Sur téléphone : barre horizontale en bas de l'écran.
-- Éditeur visuel, aucune dépendance.
+- Crayon ✏️ à côté du titre pour passer en mode édition.
+- Choix des pages affichées, éditeur visuel, aucune dépendance.
+
+<img src="https://raw.githubusercontent.com/mrcouscous49-ui/glass-nav-card/main/images/mobile.webp" alt="Barre en bas de l'écran sur téléphone" width="420">
 
 Va très bien avec [Glass Card](https://github.com/mrcouscous49-ui/glass-card).
 
