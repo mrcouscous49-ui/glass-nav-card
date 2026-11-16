@@ -29,7 +29,7 @@ icon: mdi:home-assistant
 
 Astuce : collez la même carte dans chaque vue, pour que la barre apparaisse même si la page est rechargée directement sur cette vue.
 
-**Modifier le tableau de bord** : faites un appui long sur l'icône du haut de la barre. La barre latérale et les onglets de HA réapparaissent, avec le crayon d'édition. Refaites un appui long pour les masquer de nouveau.
+**Modifier le tableau de bord** : touchez ✏️ **Modifier le tableau de bord** en bas de la barre. Les barres de HA réapparaissent et le mode édition s'ouvre ; elles se masquent de nouveau quand vous cliquez sur « Terminé ». Un appui long sur l'icône du haut affiche ou masque aussi les barres de HA.
 
 ### Options
 
@@ -42,6 +42,7 @@ Astuce : collez la même carte dans chaque vue, pour que la barre apparaisse mê
 | `show_panels` | `true` | Ajouter les pages de la barre latérale de HA |
 | `hide_sidebar` | `true` | Masquer la barre latérale de HA |
 | `hide_header` | `true` | Masquer le bandeau d'onglets de HA |
+| `show_edit` | `true` | Bouton ✏️ « Modifier le tableau de bord » (administrateurs) |
 | `position` | `left` | `left` ou `right` |
 | `mobile_bottom` | `true` | Barre en bas de l'écran sur téléphone |
 | `color` | `[212, 232, 138]` | Couleur du surlignage (RVB) |

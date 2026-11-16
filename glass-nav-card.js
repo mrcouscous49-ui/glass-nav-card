@@ -14,6 +14,8 @@ const STRINGS = {
     title: "Titre du menu",
     nav_placeholder: "Barre de navigation Glass : elle s'affiche sur le bord de l'écran (cette case n'est visible qu'en mode édition).",
     nav_icon: "Icône du menu",
+    edit: "Modifier le tableau de bord",
+    show_edit: "Bouton « Modifier le tableau de bord »",
     show_views: "Onglets de ce tableau de bord",
     show_panels: "Pages de la barre latérale de HA",
     hide_sidebar: "Masquer la barre latérale de HA",
@@ -30,6 +32,8 @@ const STRINGS = {
     title: "Menu title",
     nav_placeholder: "Glass navigation bar: it shows on the edge of the screen (this box is only visible in edit mode).",
     nav_icon: "Menu icon",
+    edit: "Edit dashboard",
+    show_edit: "\"Edit dashboard\" button",
     show_views: "This dashboard's views",
     show_panels: "Home Assistant sidebar pages",
     hide_sidebar: "Hide the Home Assistant sidebar",
@@ -303,6 +307,11 @@ const GlassNav = {
       const it = ev.target.closest(".it");
       if (!it) return;
       ev.preventDefault();
+      if (it.classList.contains("edit")) {
+        this.host.removeAttribute("open");
+        this.startEdit();
+        return;
+      }
       if (it.classList.contains("head")) {
         if (!long) this.host.toggleAttribute("open");
         return;
@@ -367,19 +376,24 @@ const GlassNav = {
 
     const link = (it) => {
       const p = String(it.path || "").replace(/\/$/, "");
-      return `<a class="it ${p === best ? "active" : ""}" href="${esc(it.path)}" data-path="${esc(it.path)}" title="${esc(it.name)}">
+      return `<a class="it ${p === best ? "active" : ""}" href="${esc(it.path)}" data-path="${esc(it.path)}">
         <ha-icon icon="${esc(it.icon || "mdi:circle-medium")}"></ha-icon><span>${esc(it.name)}</span></a>`;
     };
-    const head = `<a class="it head" title="${esc(cfg.title || "Menu")}">
+    const head = `<a class="it head">
       <ha-icon icon="${esc(cfg.icon || "mdi:menu")}"></ha-icon><span>${esc(cfg.title || "Menu")}</span></a>`;
-    const html = head + groups.map((g) => `<div class="sep"></div>${g.map(link).join("")}`).join("");
+    const lovelace = this.owner._dashboard();
+    const canEdit = cfg.show_edit !== false && this.owner._hass?.user?.is_admin && lovelace?.setEditMode;
+    const edit = canEdit
+      ? `<div class="sep"></div><a class="it edit"><ha-icon icon="mdi:pencil"></ha-icon><span>${esc(tr(this.owner._hass, "edit"))}</span></a>`
+      : "";
+    const html = head + groups.map((g) => `<div class="sep"></div>${g.map(link).join("")}`).join("") + edit;
     if (html !== this._html) this.nav.innerHTML = this._html = html;
   },
 
   // Masque la barre latérale et les onglets de HA (sauf en mode édition ou après un appui long).
   applyHide() {
     const cfg = this.owner?._config || {};
-    const editing = new URLSearchParams(location.search).has("edit");
+    const editing = new URLSearchParams(location.search).has("edit") || !!this.owner?._dashboard()?.editMode;
     const off = this.bypass || editing;
     this.restore();
     if (off) return;
@@ -397,6 +411,24 @@ const GlassNav = {
       add(main?.querySelector("ha-drawer")?.shadowRoot, HIDE_SIDEBAR_DRAWER_CSS);
     }
     if (cfg.hide_header !== false) add(this.owner?._huiRoot()?.shadowRoot, HIDE_HEADER_CSS);
+  },
+
+  // Bouton crayon : barres HA réaffichées + mode édition ; on remasque à la sortie du mode édition.
+  startEdit() {
+    const lovelace = this.owner?._dashboard();
+    if (!lovelace?.setEditMode) return;
+    this.bypass = true;
+    this.applyHide();
+    lovelace.setEditMode(true);
+    clearInterval(this._editTimer);
+    this._editTimer = setInterval(() => {
+      if (!this.host) return clearInterval(this._editTimer);
+      if (!this.owner?._dashboard()?.editMode) {
+        clearInterval(this._editTimer);
+        this.bypass = false;
+        this.applyHide();
+      }
+    }, 1000);
   },
 
   restore() {
@@ -436,6 +468,7 @@ class GlassNavCard extends HTMLElement {
   set hass(hass) {
     const first = !this._hass;
     this._hass = hass;
+    this._syncEdit();
     if (first || hass.panels !== this._panels) {
       this._panels = hass.panels;
       this._update();
@@ -478,10 +511,14 @@ class GlassNavCard extends HTMLElement {
     return this._huiRoot()?.lovelace;
   }
 
+  _syncEdit() {
+    const editing = this._preview || new URLSearchParams(location.search).has("edit") || this._dashboard()?.editMode;
+    this.toggleAttribute("edit", !!editing);
+  }
+
   _update() {
     if (!this._config) return;
-    const editing = this._preview || new URLSearchParams(location.search).has("edit");
-    this.toggleAttribute("edit", !!editing);
+    this._syncEdit();
     this.shadowRoot.querySelector("span").textContent = tr(this._hass, "nav_placeholder");
     // Seule la carte posée dans le tableau de bord pilote la barre (pas l'aperçu de l'éditeur).
     if (this.isConnected && this._hass && !this._preview && this._huiRoot()) GlassNav.attach(this);
@@ -567,6 +604,7 @@ const NAV_SCHEMA = [
   pairOf({ name: "title", selector: { text: {} } }, { name: "nav_icon", selector: { icon: {} } }),
   pairOf(bool("show_views"), bool("show_panels")),
   pairOf(bool("hide_sidebar"), bool("hide_header")),
+  bool("show_edit"),
   pairOf({ name: "position", selector: { select: { mode: "dropdown", options: ["left", "right"] } } }, bool("mobile_bottom")),
   { name: "color", selector: { color_rgb: {} } },
   pairOf(
@@ -579,11 +617,11 @@ class GlassNavCardEditor extends GlassBaseEditor {
   get _schema() {
     // Libellés traduits pour la liste « Côté de l'écran ».
     const sch = JSON.parse(JSON.stringify(NAV_SCHEMA));
-    sch[3].schema[0].selector.select.options = ["left", "right"].map((v) => ({ value: v, label: tr(this._hass, v) }));
+    sch[4].schema[0].selector.select.options = ["left", "right"].map((v) => ({ value: v, label: tr(this._hass, v) }));
     return sch;
   }
   get _defaults() {
-    return { show_views: true, show_panels: true, hide_sidebar: true, hide_header: true, position: "left", mobile_bottom: true, color: [212, 232, 138], blur: 20, opacity: 12 };
+    return { show_views: true, show_panels: true, hide_sidebar: true, hide_header: true, show_edit: true, position: "left", mobile_bottom: true, color: [212, 232, 138], blur: 20, opacity: 12 };
   }
   _toForm(config) {
     const { icon, ...rest } = config;
