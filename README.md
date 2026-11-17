@@ -26,7 +26,9 @@ Dans l'éditeur visuel, la liste **Pages affichées dans la barre** propose tout
 
 ## Installation
 
-**Marketplace (HACS)** : Paramètres → Marketplace → ⋮ → Dépôts personnalisés → `https://github.com/mrcouscous49-ui/glass-nav-card`, type **Tableau de bord**, puis installez **Glass Nav Card** et rechargez la page (Ctrl+F5).
+**Marketplace (recommandé)** : Glass Nav Card fait partie du catalogue officiel. Dans **Paramètres → Marketplace** (ou **HACS** avant Home Assistant 2026.11), cherchez **Glass Nav Card** → **Télécharger**, puis rechargez la page (Ctrl+F5).
+
+**Dépôt personnalisé** (si la carte n'apparaît pas dans la recherche) : Paramètres → Marketplace → ⋮ → Dépôts personnalisés → `https://github.com/mrcouscous49-ui/glass-nav-card`, type **Tableau de bord**, puis installez **Glass Nav Card** et rechargez la page.
 
 **Manuelle** : copiez `glass-nav-card.js` dans `/config/www/`, puis ajoutez la ressource `/local/glass-nav-card.js` (type module) dans Paramètres → Tableaux de bord → ⋮ → Ressources.
 
