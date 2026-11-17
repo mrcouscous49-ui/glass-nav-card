@@ -3,7 +3,7 @@
  * https://github.com/mrcouscous49-ui/glass-nav-card
  */
 
-const VERSION = "0.2.1";
+const VERSION = "0.2.2";
 const DEFAULT_ACCENT = [212, 232, 138];
 
 const STRINGS = {
@@ -120,7 +120,10 @@ const HIDE_SIDEBAR_MAIN_CSS = `
   partial-panel-resolver { --mdc-top-app-bar-width: 100% !important; }
   ha-drawer > ha-sidebar { display: none !important; }
 `;
-const HIDE_SIDEBAR_DRAWER_CSS = `wa-drawer, .sidebar-shell, aside.mdc-drawer { display: none !important; }`;
+const HIDE_SIDEBAR_DRAWER_CSS = `
+  wa-drawer, .sidebar-shell, aside.mdc-drawer { display: none !important; }
+  .app-content, .mdc-drawer-app-content { padding-inline-start: 0 !important; margin-inline-start: 0 !important; width: 100% !important; }
+`;
 const HIDE_HEADER_CSS = `
   .header { display: none !important; }
   #view {
@@ -435,6 +438,7 @@ const GlassNav = {
     const editing = new URLSearchParams(location.search).has("edit") || !!this.owner?._dashboard()?.editMode;
     const off = this.bypass || editing;
     this.restore();
+    this._dodgeSidebar(off);
     if (off) return;
     const add = (root, css) => {
       if (!root) return;
@@ -469,6 +473,20 @@ const GlassNav = {
         this.applyHide();
       }
     }, 1000);
+  },
+
+  // Barres de HA visibles : on décale la pilule à droite de la barre latérale au lieu de la recouvrir.
+  _dodgeSidebar(visible) {
+    if (!this.host) return;
+    this.host.style.removeProperty("left");
+    this.host.style.removeProperty("right");
+    if (!visible || window.matchMedia?.("(max-width: 600px)").matches) return;
+    const main = document.querySelector("home-assistant")?.shadowRoot?.querySelector("home-assistant-main")?.shadowRoot;
+    const drawer = main?.querySelector("ha-drawer");
+    const side = drawer?.shadowRoot?.querySelector(".sidebar-shell") || main?.querySelector("ha-sidebar");
+    const r = side?.getBoundingClientRect();
+    if (!r || !r.width || r.right > window.innerWidth / 2) return;
+    if (this.host.getAttribute("side") !== "right") this.host.style.left = `${Math.round(r.right) + 16}px`;
   },
 
   restore() {
