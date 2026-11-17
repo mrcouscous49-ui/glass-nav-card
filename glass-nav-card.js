@@ -3,7 +3,7 @@
  * https://github.com/mrcouscous49-ui/glass-nav-card
  */
 
-const VERSION = "0.2.2";
+const VERSION = "0.2.3";
 const DEFAULT_ACCENT = [212, 232, 138];
 
 const STRINGS = {
@@ -157,12 +157,22 @@ const NAV_STYLE = `
     padding: 10px 8px;
     box-sizing: border-box;
     border-radius: 28px;
+    position: relative;
+    transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  /* Le verre est une couche à part, sous la liste : un flou posé directement sur un bloc
+     qui défile laisse des bandes plus claires dans Chrome au survol des lignes. */
+  .glass {
+    position: absolute;
+    inset: 0;
+    border-radius: 28px;
     background: rgba(255, 255, 255, var(--gc-opacity));
     backdrop-filter: var(--gc-backdrop);
     -webkit-backdrop-filter: var(--gc-backdrop);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    box-sizing: border-box;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-    transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: none;
   }
   nav::-webkit-scrollbar { display: none; }
   :host([open]) nav { width: 220px; }
@@ -306,7 +316,7 @@ const GlassNav = {
       this.host = document.createElement("div");
       this.host.className = "glass-nav";
       const root = this.host.attachShadow({ mode: "open" });
-      root.innerHTML = `<style>${NAV_STYLE}</style><nav></nav>`;
+      root.innerHTML = `<style>${NAV_STYLE}</style><div class="glass"></div><nav></nav>`;
       this.nav = root.querySelector("nav");
       this._html = null;
       this._bind();
