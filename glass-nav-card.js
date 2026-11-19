@@ -3,7 +3,7 @@
  * https://github.com/mrcouscous49-ui/glass-nav-card
  */
 
-const VERSION = "0.2.3";
+const VERSION = "0.3.0";
 const DEFAULT_ACCENT = [212, 232, 138];
 
 const STRINGS = {
@@ -18,6 +18,7 @@ const STRINGS = {
     visible_items: "Pages affichées dans la barre",
     tab: "onglet",
     show_edit: "Bouton « Modifier le tableau de bord »",
+    show_badge: "Pastille des mises à jour sur Paramètres",
     show_views: "Onglets de ce tableau de bord",
     show_panels: "Pages de la barre latérale de HA",
     hide_sidebar: "Masquer la barre latérale de HA",
@@ -38,6 +39,7 @@ const STRINGS = {
     visible_items: "Pages shown in the bar",
     tab: "view",
     show_edit: "\"Edit dashboard\" button",
+    show_badge: "Update badge on Settings",
     show_views: "This dashboard's views",
     show_panels: "Home Assistant sidebar pages",
     hide_sidebar: "Hide the Home Assistant sidebar",
@@ -195,7 +197,32 @@ const NAV_STYLE = `
     -webkit-tap-highlight-color: transparent;
     transition: background 0.25s, color 0.25s;
   }
+  .it { position: relative; }
   .it ha-icon { --mdc-icon-size: 22px; flex: none; }
+  /* Pastille (mises à jour / réparations) : coin de l'icône, puis en bout de ligne quand la barre est ouverte. */
+  .badge {
+    position: absolute;
+    left: 21px;
+    top: 21px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    background: rgb(var(--nav-accent));
+    color: #1c1f14;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    box-shadow: 0 0 8px rgba(var(--nav-accent), 0.6);
+    pointer-events: none;
+  }
+  .it.active .badge { background: #1c1f14; color: rgb(var(--nav-accent)); box-shadow: none; }
+  :host([open]) .badge { position: static; margin-left: auto; min-width: 20px; height: 20px; border-radius: 10px; font-size: 11px; line-height: 20px; }
+  @media (hover: hover) {
+    nav:hover .badge { position: static; margin-left: auto; min-width: 20px; height: 20px; border-radius: 10px; font-size: 11px; line-height: 20px; }
+  }
   .it span { font-size: 14px; font-weight: 500; opacity: 0; transition: opacity 0.2s; }
   :host([open]) .it span { opacity: 1; }
   @media (hover: hover) {
@@ -257,6 +284,8 @@ const NAV_STYLE = `
     :host([mobile="bottom"]) .it span,
     :host([mobile="bottom"]) .it.head,
     :host([mobile="bottom"]) .sep { display: none; }
+    :host([mobile="bottom"]) .badge,
+    :host([mobile="bottom"]) nav:hover .badge { position: absolute; left: 22px; top: 20px; margin: 0; min-width: 16px; height: 16px; font-size: 10px; line-height: 16px; }
     :host([mobile="bottom"]) .pen { opacity: 1; pointer-events: auto; width: 40px; height: 40px; }
   }
 `;
@@ -300,6 +329,17 @@ const navigateTo = (path) => {
   }
   history.pushState(null, "", path);
   window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+};
+
+// Même calcul que la barre latérale de HA : mises à jour installables + réparations non ignorées.
+const countUpdates = (hass) => {
+  let n = 0;
+  for (const id in hass?.states || {}) {
+    if (!id.startsWith("update.")) continue;
+    const st = hass.states[id];
+    if (st.state === "on" && (st.attributes?.supported_features ?? 1) & 1) n++;
+  }
+  return n;
 };
 
 // Barre unique, posée sur <body> pour échapper aux grilles et transformations du tableau de bord.
@@ -405,9 +445,33 @@ const GlassNav = {
       .filter((g) => g.length);
   },
 
+  // Réparations : lues une fois puis suivies en direct (administrateurs seulement).
+  _watchRepairs(hass) {
+    if (this._repairsConn === hass?.connection || !hass?.connection || !hass.user?.is_admin) return;
+    this._repairsConn = hass.connection;
+    const load = () =>
+      hass.connection
+        .sendMessagePromise({ type: "repairs/list_issues" })
+        .then((r) => {
+          this.repairs = (r?.issues || []).filter((i) => !i.ignored).length;
+          this.render();
+        })
+        .catch(() => {});
+    load();
+    hass.connection.subscribeEvents?.(load, "repairs_issue_registry_updated")?.catch?.(() => {});
+  },
+
+  badgeCount() {
+    const cfg = this.owner?._config || {};
+    if (cfg.show_badge === false) return 0;
+    return countUpdates(this.owner._hass) + (this.repairs || 0);
+  },
+
   render() {
     if (!this.host || !this.owner) return;
     const cfg = this.owner._config;
+    this._watchRepairs(this.owner._hass);
+    const badge = this.badgeCount();
     this.host.setAttribute("side", cfg.position === "right" ? "right" : "left");
     this.host.setAttribute("mobile", cfg.mobile_bottom === false ? "side" : "bottom");
     applyGlass(this.host, { blur: 20, opacity: 12, ...cfg });
@@ -429,7 +493,9 @@ const GlassNav = {
     const link = (it) => {
       const p = String(it.path || "").replace(/\/$/, "");
       return `<a class="it ${p === best ? "active" : ""}" href="${esc(it.path)}" data-path="${esc(it.path)}">
-        <ha-icon icon="${esc(it.icon || "mdi:circle-medium")}"></ha-icon><span>${esc(it.name)}</span></a>`;
+        <ha-icon icon="${esc(it.icon || "mdi:circle-medium")}"></ha-icon><span>${esc(it.name)}</span>${
+        p === "/config" && badge ? `<b class="badge">${badge > 99 ? "99+" : badge}</b>` : ""
+      }</a>`;
     };
     const lovelace = this.owner._dashboard();
     const canEdit = cfg.show_edit !== false && this.owner._hass?.user?.is_admin !== false;
@@ -540,6 +606,9 @@ class GlassNavCard extends HTMLElement {
     if (first || hass.panels !== this._panels) {
       this._panels = hass.panels;
       this._update();
+    } else if (GlassNav.owner === this) {
+      // render() ne réécrit la barre que si le contenu a changé (nouvelle mise à jour, etc.).
+      GlassNav.render();
     }
   }
 
@@ -673,7 +742,7 @@ const NAV_SCHEMA = [
   pairOf(bool("show_views"), bool("show_panels")),
   { name: "visible_items", selector: { select: { multiple: true, mode: "list", options: [] } } },
   pairOf(bool("hide_sidebar"), bool("hide_header")),
-  bool("show_edit"),
+  pairOf(bool("show_edit"), bool("show_badge")),
   pairOf({ name: "position", selector: { select: { mode: "dropdown", options: ["left", "right"] } } }, bool("mobile_bottom")),
   { name: "color", selector: { color_rgb: {} } },
   pairOf(
@@ -701,7 +770,7 @@ class GlassNavCardEditor extends GlassBaseEditor {
     return availableItems(this._config || {}, this._hass, owner?._dashboard(), base).flat();
   }
   get _defaults() {
-    return { show_views: true, show_panels: true, hide_sidebar: true, hide_header: true, show_edit: true, position: "left", mobile_bottom: true, color: [212, 232, 138], blur: 20, opacity: 12 };
+    return { show_views: true, show_panels: true, hide_sidebar: true, hide_header: true, show_edit: true, show_badge: true, position: "left", mobile_bottom: true, color: [212, 232, 138], blur: 20, opacity: 12 };
   }
   _toForm(config) {
     const { icon, hide_items, ...rest } = config;

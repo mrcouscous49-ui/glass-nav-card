@@ -68,6 +68,7 @@ Astuce : collez la même carte dans chaque vue, pour que la barre apparaisse mê
 | `hide_sidebar` | `true` | Masquer la barre latérale de HA |
 | `hide_header` | `true` | Masquer le bandeau d'onglets de HA |
 | `show_edit` | `true` | Bouton ✏️ « Modifier le tableau de bord » (administrateurs) |
+| `show_badge` | `true` | Pastille sur **Paramètres** avec le nombre de mises à jour et de réparations en attente (comme la pastille orange de HA), dans la couleur de la barre |
 | `position` | `left` | `left` ou `right` |
 | `mobile_bottom` | `true` | Barre en bas de l'écran sur téléphone |
 | `color` | `[212, 232, 138]` | Couleur du surlignage (RVB) |
